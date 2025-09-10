@@ -1,0 +1,42 @@
+project: my_project
+registry: data/registry.db
+provider: local
+
+# Offline store configuration
+offline_store:
+  type: file
+  path: data/offline_store
+
+# Ray compute engine configuration for RayJob CR execution
+batch_engine:
+  type: rayjob.engine                    # Use RayJob CR-based execution
+  max_workers: 10                        # Maximum number of workers per step
+  enable_optimization: true              # Enable performance optimizations
+  broadcast_join_threshold_mb: 50        # Broadcast join threshold (MB)
+  target_partition_size_mb: 32          # Target partition size (MB)
+  window_size_for_joins: "1H"           # Time window for distributed joins
+  
+  # RayJob CR-specific configuration
+  namespace: default                     # Kubernetes namespace for RayJob CRs
+  rayjob_image: rayproject/ray:2.8.0    # Container image for RayJob CRs
+  step_timeout_seconds: 3600            # Timeout for individual DAG steps
+  enable_step_monitoring: true           # Enable detailed monitoring of DAG steps
+  
+  # Intermediate result storage
+  intermediate_storage_type: memory     # Storage type (memory, redis, s3)
+  intermediate_storage_config:          # Configuration for intermediate storage
+    redis_host: localhost
+    redis_port: 6379
+    redis_db: 0
+  
+  # CodeFlare SDK configuration (OPTIONAL)
+  use_codeflare_sdk: false             # Set to true to use CodeFlare SDK
+  use_existing_cluster: false          # Set to true to use existing cluster
+  existing_cluster_name: null          # Name of existing Ray cluster
+  cluster_lifecycle_mode: per_job       # per_job (single cluster) or per_step (separate clusters)
+
+# Online store for serving features
+online_store:
+  path: data/online_store.db
+
+entity_key_serialization_version: 3

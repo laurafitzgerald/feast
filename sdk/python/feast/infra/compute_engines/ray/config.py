@@ -11,7 +11,7 @@ from feast.repo_config import FeastConfigBaseModel
 class RayComputeEngineConfig(FeastConfigBaseModel):
     """Configuration for Ray Compute Engine."""
 
-    type: Literal["ray.engine"] = "ray.engine"
+    type: Literal["ray.engine", "rayjob.engine"] = "ray.engine"
     """Ray Compute Engine type selector"""
 
     ray_address: Optional[str] = None
@@ -48,6 +48,25 @@ class RayComputeEngineConfig(FeastConfigBaseModel):
 
     execution_timeout_seconds: Optional[int] = None
     """Timeout for job execution in seconds."""
+
+    # CodeFlare SDK configuration
+    namespace: str = "default"
+    """Kubernetes namespace for RayJob CRs"""
+
+    step_timeout_seconds: int = 3600
+    """Timeout for individual DAG steps in seconds"""
+
+    use_codeflare_sdk: bool = False
+    """Whether to use CodeFlare SDK for RayJob management"""
+
+    use_existing_cluster: bool = False
+    """Whether to use an existing Ray cluster (requires CodeFlare SDK)"""
+
+    existing_cluster_name: Optional[str] = None
+    """Name of existing Ray cluster to use"""
+
+    cluster_lifecycle_mode: str = "per_job"
+    """Cluster lifecycle mode: 'per_job' (single cluster) or 'per_step' (separate clusters)"""
 
     @property
     def window_size_timedelta(self) -> timedelta:

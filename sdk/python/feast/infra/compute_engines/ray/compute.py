@@ -24,6 +24,11 @@ from feast.infra.compute_engines.ray.job import (
     RayDAGRetrievalJob,
     RayMaterializationJob,
 )
+from feast.infra.compute_engines.ray.rayjob_compute import (
+    RayJobComputeEngine,
+    RayJobRetrievalJob,
+    RayJobMaterializationJob,
+)
 from feast.infra.compute_engines.ray.utils import write_to_online_store
 from feast.infra.offline_stores.offline_store import RetrievalJob
 from feast.infra.registry.base_registry import BaseRegistry
@@ -54,7 +59,20 @@ class RayComputeEngine(ComputeEngine):
         )
         self.config = repo_config.batch_engine
         assert isinstance(self.config, RayComputeEngineConfig)
-        self._ensure_ray_initialized()
+        
+        # Check if using RayJob CR mode
+        if self.config.type == "rayjob.engine":
+            logger.info("Using RayJob CR-based execution mode")
+            # Delegate to RayJobComputeEngine
+            self._rayjob_engine = RayJobComputeEngine(
+                offline_store=offline_store,
+                online_store=online_store,
+                repo_config=repo_config,
+                **kwargs,
+            )
+        else:
+            logger.info("Using standard Ray execution mode")
+            self._ensure_ray_initialized()
 
     def _ensure_ray_initialized(self):
         """Ensure Ray is initialized with proper configuration."""
@@ -172,6 +190,12 @@ class RayComputeEngine(ComputeEngine):
         project: str,
     ) -> MaterializationJob:
         """Legacy materialization method for backward compatibility."""
+        # Delegate to RayJob engine if using RayJob CR mode
+        if self.config.type == "rayjob.engine":
+            return self._rayjob_engine._materialize_from_offline_store(
+                registry, feature_view, start_date, end_date, project
+            )
+            
         from feast.utils import _get_column_names
 
         job_id = f"{feature_view.name}-{start_date}-{end_date}"
@@ -253,6 +277,10 @@ class RayComputeEngine(ComputeEngine):
         self, registry: BaseRegistry, task: HistoricalRetrievalTask
     ) -> RetrievalJob:
         """Get historical features using Ray DAG execution."""
+        # Delegate to RayJob engine if using RayJob CR mode
+        if self.config.type == "rayjob.engine":
+            return self._rayjob_engine.get_historical_features(registry, task)
+            
         if isinstance(task.entity_df, str):
             raise NotImplementedError(
                 "SQL-based entity_df is not yet supported in Ray DAG"

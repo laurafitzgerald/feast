@@ -243,7 +243,7 @@ class RayFeatureBuilder(FeatureBuilder):
             # For derived views, we need to ensure parent views are materialized first
             # So we create a processing chain that depends on parent write nodes
             parent_write_nodes = []
-            processing_node: DAGNode
+           
             if hasattr(view, "source_views") and view.source_views:
                 # This is a derived view - collect parent write nodes as dependencies
                 for parent in logical_node.inputs:
